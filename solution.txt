@@ -1,0 +1,288 @@
+
+
+Question 1
+
+data <- read.csv("age_length_data.csv",header=TRUE,skip=1)
+data$total = apply(data[,2:ncol(data)],1,sum)
+print(data)
+
+nages = ncol(data)-2
+total = data[,nages+2]
+total.matrix = matrix(rep(total,nages),ncol=nages)
+
+prop.ALK = data[,2:(nages+1)]/total.matrix
+print(prop.ALK)
+#apply(prop.ALK,1,sum)
+
+#cldata <- read.table("catch_length.dat",header=TRUE)
+cldata <- read.csv("catch_length.csv",header=TRUE)
+print(cldata)
+
+total.clmatrix = matrix(rep(cldata$Count,nages),ncol=nages)
+
+catch_at_age_length = prop.ALK*total.clmatrix
+print(catch_at_age_length)
+
+catch_at_age = apply(catch_at_age_length,2,sum,na.rm=T)
+print(catch_at_age)
+
+barplot(cldata$Count,names=cldata$Length,xlab='Length (cm)',ylab='Frequency')
+
+barplot(catch_at_age,names=3:14,xlab='Age',ylab='Frequency')
+
+#weighted.mean(cldata$Length,cldata$Count)
+#weighted.mean(3:14,catch_at_age)
+
+
+image(x=cldata$Length,y=3:14,z=as.matrix(x=data[,2:(nages+1)]),xlab='Length (cm)',ylab='Age')
+
+
+Question 2
+
+catch.length <- read.csv("catch_length_3Ps.csv")
+tot.len = apply(catch.length[,2:ncol(catch.length)],1,sum)
+names(tot.len)=catch.length[,1]
+
+catch.length.sub = catch.length[catch.length[,1]>51,]
+
+catch.length.sub[,1] %in% data[,1]
+
+prop.ALK1 = rbind(prop.ALK[1,],prop.ALK)
+prop.ALK1 = rbind(prop.ALK1,prop.ALK[65,],prop.ALK[65,],prop.ALK[65,],prop.ALK[65,],prop.ALK[65,])
+
+x = 7:13
+p = seq(0,1,length=length(x))
+for(i in 1:length(x)){prop.ALK1[x[i],] = (1-p[i])*prop.ALK1[6,] + p[i]*prop.ALK1[14,]}
+
+x = 19:21
+p = seq(0,1,length=length(x))
+for(i in 1:length(x)){prop.ALK1[x[i],] = (1-p[i])*prop.ALK1[18,] + p[i]*prop.ALK1[22,]}
+
+x = 29:30
+p = seq(0,1,length=length(x))
+for(i in 1:length(x)){prop.ALK1[x[i],] = (1-p[i])*prop.ALK1[28,] + p[i]*prop.ALK1[31,]}
+
+x = 65
+p = 0.5
+for(i in 1:length(x)){prop.ALK1[x[i],] = (1-p[i])*prop.ALK1[64,] + p[i]*prop.ALK1[66,]}
+
+catch.age = matrix(NA, 12, 58)
+for (i in 1:58) {
+  catch.age[,i] = as.vector(catch.length.sub[,i+1])%*%as.matrix(prop.ALK1)
+}
+
+prop.age = catch.age/matrix(apply(catch.age,2,sum),nrow=nrow(catch.age),ncol=ncol(catch.age),byrow=TRUE)
+
+library(RColorBrewer)
+col1 <- brewer.pal(nrow(prop.age), "Paired")
+barplot(prop.age, col = col1, xlim = c(0, 80), main = "Propotion at age",
+xlab = "Year", ylab = "Frequency", border = NA)
+legend1 <- legend("topright",legend = c(3:14), title = "Age", fill = col1, box.col = "white")
+
+years=1959:2016
+ages=3:14
+mean.len = rep(NA,length(years)) 
+mean.age = rep(NA,length(years)) 
+
+for(i in 1:length(years)){
+  mean.len[i] = sum(catch.length[,1]*catch.length[,i+1])/sum(catch.length[,i+1])
+  mean.age[i] = sum(catch.age[,i]*ages)/sum(catch.age[,i])
+}
+
+plot(years,mean.len,type='b')
+
+plot(years,mean.age,type='b')
+
+CA = t(catch.age)
+CA = cbind(years,CA)
+colnames(CA) = c('year',ages)
+CA = as.data.frame(CA)
+
+spay_dat = function(X){
+ 
+ Y=nrow(X)
+ A=ncol(X)-1
+ Ap=A+1
+ year=X[,1]
+ Xp=X[,2:Ap]
+ age = as.numeric(sub('Age','',colnames(X)[2:Ap]))
+
+ Ph = Xp/matrix(apply(Xp,1,sum,na.rm=T),nrow=Y,ncol=A,byrow=F)
+ Ph.dev = Ph - matrix(apply(Ph,2,mean,na.rm=T),nrow=Y,ncol=A,byrow=T)
+ Ph.dev = Ph.dev/matrix(sqrt(apply(Ph,2,var,na.rm=T)),nrow=Y,ncol=A,byrow=T)
+
+  dat = data.frame(age = as.vector(matrix(age,nrow=Y,ncol=A,byrow=T)),
+  year = as.vector(matrix(year,nrow=Y,ncol=A,byrow=F)),
+  N = unlist(Xp),spay=unlist(Ph.dev))
+  dat$clr = sign(dat$spay)
+  dat$cohort = dat$year-dat$age
+  return(dat)
+}
+
+dat = spay_dat(CA)
+
+ggplot(dat, aes(x=year, y=age, color=factor(clr))) + 
+    geom_point(aes(size = 1.5*abs(spay)),alpha=0.6, show.legend = FALSE) +
+    geom_text(data=dat[dat$age == max(age) | dat$year == max(year),],
+    aes(x=year,y=age,label=cohort),show.legend=FALSE,size=1.5,color='black',angle=45) +
+    scale_size_continuous(range = c(0,10)) + 
+    theme(plot.margin = margin(2, 2, 2, 2)) +
+    ggtitle("Catch SPAY") +
+    scale_color_manual(values=c('blue','red'))+ 
+    scale_y_discrete(name ="Age",limits=age)+ 
+    scale_x_discrete(name ="year",limits=seq(1960,2020,by=5))
+    
+
+
+Question 3
+
+data <- read.table("survey.dat",header=TRUE)
+rbar.h <- tapply(data$catch,data$stratum,mean)
+s2.h <- tapply(data$catch,data$stratum,var)
+Nh <- tapply(data$Nh,data$stratum,unique)
+nh <- tapply(data$Nh,data$stratum,length)
+N = sum(Nh)
+rbar = sum(Nh*rbar.h)/N
+fh = nh/Nh
+Wh = Nh/N
+rbar.var = sum(Wh*Wh*(1-fh)*s2.h/nh)
+
+print(rbar)
+print(rbar.var)
+
+Question 4
+
+print(fh)
+imin = which.min(fh)
+imax = which.max(fh)
+print(imin)
+print(imax)
+nh.old=nh
+nh[imin] = nh[imin]+3
+nh[imax] = nh[imax]-3
+fh = nh/Nh
+new.rbar.var = sum(Wh*Wh*(1-fh)*s2.h/nh)
+print(nh.old)
+print(nh)
+print(new.rbar.var)
+print(rbar.var)
+change = 100*(new.rbar.var/rbar.var - 1)
+print(change)
+
+Question 5
+
+data <- read.table("survey.dat",header=TRUE)
+rbar.h <- tapply(data$catch,data$stratum,mean)
+s2.h <- tapply(data$catch,data$stratum,var)
+Nh <- tapply(data$Nh,data$stratum,unique)
+nh <- tapply(data$Nh,data$stratum,length)
+N = sum(Nh)
+rbar = sum(Nh*rbar.h)/N
+fh = nh/Nh
+Wh = Nh/N
+
+numerator = Nh*sqrt(s2.h)
+n = sum(nh)
+nh.opt = round(n*numerator/sum(numerator))
+print(nh.opt)
+nh.opt[7]=nh.opt[7]+1
+
+fh = nh.opt/Nh
+opt.rbar.var = sum(Wh*Wh*(1-fh)*s2.h/nh.opt)
+
+print(opt.rbar.var)
+print(rbar.var)
+change = 100*(opt.rbar.var/rbar.var - 1)
+print(change)
+
+nh.opt[7]=16
+fh = nh.opt/Nh
+opt.rbar.var = sum(Wh*Wh*(1-fh)*s2.h/nh.opt)
+
+print(opt.rbar.var)
+print(rbar.var)
+change = 100*(opt.rbar.var/rbar.var - 1)
+print(change)
+
+
+Question 6
+
+library(gtools)
+
+set.seed(1234)
+Nh = c(15,10,7)
+N=sum(Nh)
+nh = c(5,3,2)
+stratum = rep(1:3,times=Nh)
+y.pop = rpois(N,stratum*5)
+
+pop = data.frame(y=y.pop,stratum=stratum)
+pop$istrat = as.numeric(as.factor(pop$stratum)) 
+
+
+sp <- split(pop, list(pop$stratum))
+
+sfunc = function(x){
+ i = unique(x$istrat)
+ all.sample.id = combinations(Nh[i],nh[i])  
+ all.samples = matrix(x$y[all.sample.id],ncol=nh[i])
+ all.sample.means = apply(all.samples,1,mean)
+ return(all.sample.means)  
+} 
+
+all.strat.means <- lapply(sp, sfunc)
+ 
+all.means = expand.grid(m1 = all.strat.means[[1]], m2 = all.strat.means[[2]], m3 = all.strat.means[[3]]) 
+
+##i
+nrow(all.means)
+
+all.wt.mean = apply(all.means,1,weighted.mean,w=Nh)
+length(unique(all.wt.mean))
+
+
+true.mean = mean(pop$y) 
+Vh = tapply(pop$y,stratum,var)
+fh = nh/Nh
+Vsample.mean.equation = sum(((Nh/N)**2)*(1-fh)*Vh/nh)
+
+Esample.mean = mean(all.wt.mean)  
+
+np = length(all.wt.mean)
+Vsample.mean = (np-1)*var(all.wt.mean)/np
+
+
+print(true.mean)
+print(Esample.mean)
+print(Vsample.mean.equation)
+print(Vsample.mean)
+
+hist(all.wt.mean)
+
+qqnorm(all.wt.mean)
+qqline(all.wt.mean,col='red')
+
+ Esample.mean.old=Esample.mean
+ Vsample.mean.old = Vsample.mean
+
+
+print(Esample.mean)
+print(Vsample.mean)
+
+# 11.09375
+# 19.05279
+
+ 
+change = 100*(Esample.mean/Esample.mean.old - 1)
+print(change) 
+
+change = 100*(Vsample.mean/Vsample.mean.old - 1)
+print(change)
+ 
+> print(change) 
+[1] 30.03663
+> 
+> change = 100*(Vsample.mean/Vsample.mean.old - 1)
+> print(change)
+[1] 3768.871
+ 
