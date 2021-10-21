@@ -5,7 +5,6 @@ n=20
 pop.mu=5
 pop.s2=1;
 
-?rnorm
 y = rnorm(n=n,mean=pop.mu,sd=sqrt(pop.s2))
 print(y,digits=3)
 
@@ -133,9 +132,7 @@ der.vonb_nll = function(parm){
   n = length(mu)
   resid = tdata$len-mu
   nll = n*log(2*pi*s2)/2 + sum(resid**2)/(2*s2) 
-  
   jac = der.vonb(Linf,K,ao,tdata$age)   
-  
   dnll.dreg_parm = apply(-resid*jac/s2,2,sum)
   dnll.ds2 = n/(2*s2) - 0.5*sum(resid**2)/(s2**2) 
   
