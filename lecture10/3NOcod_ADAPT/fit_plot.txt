@@ -1,0 +1,41 @@
+for (i in usurvey){
+ind <- (fit$survey==i)&(fit$est.wt!=0)
+if(any(!is.na(fit$age[ind]))){
+
+mina <- min(fit$age[ind]);maxa <- max(fit$age[ind]);
+
+gname <- paste(pname,fig.folder,"\\fit_",i,".",plot_type,sep="")
+if(plot_type == "wmf"){win.metafile(file=gname,width=6,height=8)}
+if(plot_type == "jpeg"){jpeg(file=gname,width=6,height=8,units='in',res=300)}
+npanels <- ceiling((maxa-mina+1)/2)
+par(mfcol=c(npanels,2),oma=c(2,2,1,1),mar=c(3,3,0,0),cex.axis=1.2,cex.lab=1.2,las=1)
+
+for (a in mina:maxa){
+ ind <- ((fit$survey==i)&(fit$est.wt!=0)&(fit$age==a))
+ if(any(ind)){
+# y<-log(fit$index[ind])
+ y<-fit$log_index[ind]
+ yh<-fit$Elog_index[ind]
+ x <- c(min(y,yh),max(y,yh))
+ plot(x,x,xlab="",ylab="",cex=1,type="n",las=1,lab=c(5,3,7))
+ points(yh,y,cex=1,pch=3)
+ abline(0,1,lty=1)
+ lss <- sum(y*yh)/sum(yh*yh)
+ pos1 <- min(x) + 0.15*diff(range(x))
+ pos2 <- max(x) - 0.05*diff(range(x))
+ text(pos1,pos2,paste('age = ',a,sep=''),cex=1)
+
+ pos1 <- max(x) - 0.15*diff(range(x))
+ pos2 <- min(x) + 0.1*diff(range(x))
+ text(pos1,pos2,paste('s = ',round(lss,digits=2),sep=''),cex=1)
+}
+if(all(!ind)){plot.new()}
+}
+ytext2 <- paste("Observed",i,"Index")
+ytext1 <- paste("Predicted",i,"Index")
+mtext(side=1,ytext1,line=0.5,cex=1.2,outer=T)
+mtext(side=2,ytext2,line=0.5,cex=1.2,outer=T,las=0)
+
+dev.off()
+}
+}

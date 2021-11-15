@@ -1,0 +1,30 @@
+
+  xlst <- list(year = fit$year,survey=fit$survey)
+  tindex <- tapply(fit$index,xlst,"sum")
+  Etindex <- tapply(fit$Eindex,xlst,"sum")*tran.bias
+
+uyear <- sort(unique(fit$year))
+xt <- c(min(uyear),max(uyear))
+usurvey <- sort(unique(fit$survey))
+nsurv <- length(usurvey)
+
+if(plot_type == "wmf"){win.metafile(file=gname,width=5,height=6)}
+if(plot_type == "jpeg"){jpeg(file=gname,width=3,height=3,units='in',res=300)}
+par(mfcol=c(nsurv,1),oma=c(2,3,0,0),mar=c(2,2,1,2),cex.axis=1,las=1)
+
+for (i in 1:length(usurvey)){
+  y <- tindex[,i]
+  yh <- Etindex[,i]
+  yt <- c(min(y,yh,na.rm=T),max(y,yh,na.rm=T))
+  plot(xt,yt,xlab="",ylab="",type='n',axes=T,las=1,lwd=3,lab=c(5,3,7))
+  mtext(side=4,outer=F,line=0.2,usurvey[i],cex=0.7,las=0)
+
+  ind <- !is.na(y)
+  points(uyear[ind],y[ind],cex=1,pch=18)
+  lines(uyear[ind],yh[ind],lty=1)
+}
+mtext(side=1,outer=T,line=0.5,"Year",cex=0.7)
+ntext <- paste("Observed and predicted survey index",sep="")
+mtext(side=2,outer=T,line=1,ntext,cex=0.7,las=0)
+
+#dev.off()
