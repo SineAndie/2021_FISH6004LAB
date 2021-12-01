@@ -1,0 +1,39 @@
+ylim <- c(min(fit$std.resid[fit$est.wt!=0]),max(fit$std.resid[fit$est.wt!=0]))
+for (i in usurvey){
+ind <- (fit$survey==i)&(fit$est.wt!=0)
+
+if(any(!is.na(fit$age[ind]))){
+mina <- min(fit$age[ind]);maxa <- max(fit$age[ind]);
+
+gname <- paste(pname,"res_ts_",i,".",plot_type,sep="")
+if(plot_type == "wmf"){win.metafile(file=gname,width=4,height=ht)}
+if(plot_type == "jpeg"){jpeg(file=gname,width=6,height=ht,units='in',res=300)}
+
+npanels <- ceiling((maxa-mina+1)/2)
+par(mfcol=c(npanels,2),oma=c(3,4,1,1),mar=c(3,3,1,0),cex.axis=1.2)
+
+for (a in mina:maxa){
+ ind <- ((fit$survey==i)&(fit$est.wt!=0)&(fit$age==a)) 
+ if(any(ind)){
+ uyear <- fit$year[ind]
+ y <- fit$std.resid[ind]
+ plot(uyear,y,xlab="",ylab="",cex=1.2,pch=3,las=1,ylim=ylim)
+ abline(h=0,lty=1)
+
+ if(length(y)>5){smoothres <- loess(std.resid ~ year,data=fit,subset=ind,span=1)
+ lines(uyear,predict(smoothres,uyear),lty=1,lwd=1,cex=1)}
+
+ text1 <- paste("age = ",a,sep="")
+ mtext(side=3,text1,line=0.2,cex=0.8,outer=F)
+}
+if(all(!ind)){plot.new()}
+}
+
+ytext1 <- paste("Year")
+ytext2 <- paste("Standardized residuals for",i,"Index")
+mtext(side=1,ytext1,line=1,cex=1.2,outer=T)
+mtext(side=2,ytext2,line=0.2,cex=1.2,outer=T)
+
+dev.off()
+}
+}

@@ -1,0 +1,40 @@
+for (i in usurvey){
+
+gname <- paste(pname,"sres_",i,".",plot_type,sep="")
+if(plot_type == "wmf"){win.metafile(file=gname,width=6,height=7)}
+if(plot_type == "jpeg"){jpeg(file=gname,width=4,height=5,units='in',res=300)}
+par(mfcol=c(4,1),oma=c(0,3,1,1),mar=c(3,2,0,2),las=1)
+
+ind <- (fit$survey==i)&(fit$est.wt!=0)
+x <- fit$year[ind]
+y <- fit$std.resid[ind]
+
+plot(x,y,xlab="",ylab="",type='n')
+text(x,y,fit$age[ind])
+abline(h=0,lty=1)
+mres <- tapply(y,x,"mean")
+lines(sort(unique(x)),mres,lty=1,lwd=1,col='red')
+mtext(side=4,line=0.5,outer=F,'Year',las=0)
+
+x = fit$cohort[ind]
+plot(x,y,xlab="",ylab="",pch=3)
+abline(h=0,lty=1)  
+mres <- tapply(y,x,"mean")
+lines(sort(unique(x)),mres,lty=1,lwd=1,col='red')
+mtext(side=4,line=0.5,outer=F,'Cohort',las=0)
+
+plot(fit$age[ind],y,xlab="",ylab="",pch=3)
+abline(h=0,lty=2)
+mtext(side=4,line=0.5,outer=F,'Age',las=0)
+uage = sort(unique(fit$age[ind]))
+lines(uage,tapply(y,fit$age[ind],mean),lty=1)
+
+plot(fit$Eindex[ind],y,xlab="",ylab="",pch=3)
+abline(h=0,lty=1)
+mtext(side=4,line=0.5,outer=F,'Expected',las=0)
+
+ytext <- paste("Standardized",i,"Residuals")
+mtext(side=2,ytext,line=1,outer=T,las=0,cex=1.2)
+
+dev.off()
+}
